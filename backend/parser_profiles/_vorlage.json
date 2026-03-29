@@ -1,0 +1,33 @@
+{
+  "hochschule": "Name der Hochschule",
+  "kuerzel": "eindeutiges-kuerzel",
+  "version": "1.0.0",
+  "dokument_typen": {
+    "vorlesungskatalog": {
+      "tabellen_modus": true,
+      "beschreibung": "Tabellarischer Vorlesungsplan mit Wochentag, Zeit, Raum",
+      "muster": {
+        "modulname": "",
+        "modul_nummer": "",
+        "ects": "(\\d{1,2})\\s*(?:ECTS|CP)",
+        "sws": "(\\d{1,2})\\s*SWS",
+        "dozent": "",
+        "zeit": "(Mo|Di|Mi|Do|Fr)\\s+(\\d{1,2}:\\d{2})\\s*[-–]\\s*(\\d{1,2}:\\d{2})",
+        "raum": ""
+      },
+      "optionale_felder": ["dozent", "semester"]
+    },
+    "pruefungsordnung": {
+      "tabellen_modus": false,
+      "beschreibung": "Fließtext-Modulbeschreibungen aus Fachprüfungsordnungen",
+      "muster": {
+        "modulname": "",
+        "modul_nummer": "",
+        "ects": "(\\d{1,2})\\s*(?:ECTS|CP|Leistungspunkte)",
+        "sws": "(\\d{1,2})\\s*(?:SWS|Semesterwochenstunden)",
+        "semester": ""
+      },
+      "optionale_felder": ["dozent", "zeit", "raum"]
+    }
+  }
+}

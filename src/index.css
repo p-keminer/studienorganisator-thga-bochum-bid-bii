@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* THGA Farbschema */
+:root {
+  --color-thga-blue: #003366;
+  --color-thga-light: #e8f0fe;
+  --color-thga-accent: #0066cc;
+  --color-thga-warning: #f59e0b;
+  --color-thga-success: #10b981;
+  --color-thga-error: #ef4444;
+
+  /* Veranstaltungstyp-Farben */
+  --color-typ-vorlesung: #3b82f6;
+  --color-typ-uebung: #8b5cf6;
+  --color-typ-praktikum: #ef4444;
+  --color-typ-seminar: #f59e0b;
+  --color-typ-su: #10b981;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
