@@ -11,14 +11,14 @@
 
 <a id="deutsch"></a>
 
-<div align="center">
-
-`STUDIENORGANISATION` · `LOKALE DATEN` · `THGA BID / BII`
+<a id="studienorganisator"></a>
 
 # Studienorganisator
 
 Lokale Webanwendung zum Strukturieren ausgewählter THGA-Unterlagen, zum Durchsuchen von
 Modul- und Prüfungsdaten sowie zum Erstellen persönlicher Wochen- und Studienverlaufspläne.
+
+`STUDIENORGANISATION` · `LOKALE DATEN` · `THGA BID / BII`
 
 `React 19` · `TypeScript` · `FastAPI` · `SQLite` · `pdfplumber`
 
@@ -28,10 +28,6 @@ Modul- und Prüfungsdaten sowie zum Erstellen persönlicher Wochen- und Studienv
 [`Schnellstart`](#schnellstart) ·
 [`Dokumentation`](#dokumentation) ·
 [`Projektstatus`](#projektstatus)
-
-</div>
-
----
 
 ## Überblick
 
@@ -138,9 +134,9 @@ Reguläre Uploads bleiben lokal unter `backend/uploads/`; die Datenbank liegt st
 unter `backend/data/`. Ein Datenbank-Reset entfernt die hochgeladenen Quelldateien nicht.
 Für verbindliche Angaben gelten weiterhin die offiziellen Dokumente der THGA.
 
-<div align="right">
+<div align="center">
 
-[`Nach oben`](#top) · [`English`](#english)
+[![Nach oben](https://img.shields.io/badge/⬆_Nach_oben-24292f?style=for-the-badge)](#top)
 
 </div>
 
@@ -148,14 +144,14 @@ Für verbindliche Angaben gelten weiterhin die offiziellen Dokumente der THGA.
 
 <a id="english"></a>
 
-<div align="center">
-
-`STUDY ORGANISATION` · `LOCAL DATA` · `THGA BID / BII`
+<a id="study-organiser"></a>
 
 # Study Organiser
 
 Local web application for structuring selected THGA documents, searching module and exam
 data, and creating personal weekly schedules and study plans.
+
+`STUDY ORGANISATION` · `LOCAL DATA` · `THGA BID / BII`
 
 `React 19` · `TypeScript` · `FastAPI` · `SQLite` · `pdfplumber`
 
@@ -165,10 +161,6 @@ data, and creating personal weekly schedules and study plans.
 [`Quick start`](#quick-start) ·
 [`Documentation`](#documentation) ·
 [`Project status`](#project-status)
-
-</div>
-
----
 
 ## Overview
 
@@ -275,8 +267,8 @@ Regular uploads remain locally under `backend/uploads/`; by default, the databas
 stored under `backend/data/`. A database reset does not delete uploaded source files.
 Official THGA documents remain authoritative.
 
-<div align="right">
+<div align="center">
 
-[`Back to top`](#top) · [`Deutsch`](#deutsch)
+[![Back to top](https://img.shields.io/badge/⬆_Back_to_top-24292f?style=for-the-badge)](#top)
 
 </div>
