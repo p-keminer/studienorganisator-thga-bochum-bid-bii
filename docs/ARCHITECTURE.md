@@ -1,215 +1,244 @@
-# Architektur-Dokumentation
+<a id="top"></a>
 
-## Übersicht
+<div align="center">
 
-Der Studienorganisator ist eine Desktop-Anwendung mit drei klar getrennten Schichten,
-die über definierte Schnittstellen kommunizieren.
+[![Deutsch](https://img.shields.io/badge/🇩🇪_Deutsch-24292f?style=for-the-badge)](#deutsch)
+[![English](https://img.shields.io/badge/🇬🇧_English-24292f?style=for-the-badge)](#english)
 
-```
-┌─────────────────────────────────────────────────────┐
-│                 Tauri Shell (Rust)                    │
-│  Verantwortlich: App-Lifecycle, Sidecar-Management   │
-│                                                       │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │          React Frontend (Webview)                │ │
-│  │  Verantwortlich: UI, Interaktion, Darstellung    │ │
-│  │                                                   │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │ │
-│  │  │Dashboard │  │Wochenplan│  │ PDF-Upload    │  │ │
-│  │  │(Modul-   │  │(Drag &   │  │(Dateiauswahl │  │ │
-│  │  │ liste)   │  │ Drop)    │  │ + Vorschau)  │  │ │
-│  │  └──────────┘  └──────────┘  └──────────────┘  │ │
-│  └──────────────────┬──────────────────────────────┘ │
-│                     │                                 │
-│                     │ HTTP REST (localhost:8321)       │
-│                     │ Content-Type: application/json   │
-│                     │ + multipart/form-data (Upload)   │
-│                     │                                 │
-│  ┌──────────────────▼──────────────────────────────┐ │
-│  │         Python FastAPI (Sidecar-Prozess)         │ │
-│  │  Verantwortlich: Geschäftslogik, Datenhaltung    │ │
-│  │                                                   │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │ │
-│  │  │ Routers  │  │ Services │  │   Models      │  │ │
-│  │  │(API-     │  │(PDF-     │  │(SQLAlchemy +  │  │ │
-│  │  │ Layer)   │──│ Parser,  │──│ Pydantic)     │  │ │
-│  │  │          │  │ Planung) │  │               │  │ │
-│  │  └──────────┘  └──────────┘  └───────┬───────┘  │ │
-│  │                                      │          │ │
-│  │                              ┌───────▼───────┐  │ │
-│  │                              │    SQLite      │  │ │
-│  │                              │  (Lokale DB)   │  │ │
-│  │                              └───────────────┘  │ │
-│  └──────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────┘
-```
+</div>
 
-## Schicht 1: Tauri Shell (Rust)
+---
 
-**Dateien:** `src-tauri/`
+<a id="deutsch"></a>
 
-Tauri ist der Desktop-Container. Er hat zwei Aufgaben:
+<div align="center">
 
-1. **Webview bereitstellen** — Das React-Frontend läuft in einem nativen Webview
-   (kein Chromium-Bundle wie bei Electron, daher ~10x kleiner).
-2. **Sidecar-Management** — Beim App-Start wird der Python-FastAPI-Prozess als
-   Kindprozess gestartet. Beim Beenden wird er sauber heruntergefahren.
+`REACT / VITE` · `FASTAPI` · `SQLITE`
 
-### Warum Sidecar statt Rust-Backend?
+# Architektur und Laufzeit
 
-Die PDF-Extraktion profitiert massiv vom Python-Ökosystem (`pdfplumber`, `PyMuPDF`).
-Ein Rust-basierter Parser wäre zwar schneller, aber der Entwicklungsaufwand und
-die Flexibilität für verschiedene PDF-Formate sprechen klar für Python. Der Sidecar-Ansatz
-entkoppelt die Schichten: Das Backend ist auch ohne Tauri testbar (z.B. mit `pytest`).
+Ist-Zustand der verbundenen Komponenten, Datenwege und Build-Grenzen.
 
-## Schicht 2: React Frontend (TypeScript)
+[`Laufzeit`](#laufzeitpfad) ·
+[`Bausteine`](#bausteine) ·
+[`Persistenz`](#persistenz-und-importverhalten) ·
+[`Tauri`](#tauri-status)
 
-**Dateien:** `src/`
+</div>
 
-### Komponentenhierarchie
+---
 
-```
-app.tsx
-├── layout/app_shell.tsx          # Hauptlayout mit Sidebar + Content-Area
-│   ├── layout/sidebar.tsx        # Navigation zwischen Seiten
-│   └── pages/
-│       ├── dashboard_page.tsx    # Modulübersicht
-│       │   ├── dashboard/pdf_upload.tsx
-│       │   ├── dashboard/module_list.tsx
-│       │   └── dashboard/module_card.tsx
-│       └── scheduler_page.tsx    # Wochenplaner
-│           ├── scheduler/week_grid.tsx
-│           ├── scheduler/droppable_slot.tsx
-│           └── scheduler/draggable_event.tsx
-```
+## Laufzeitpfad
 
-### State-Management
-
-- **Server-State** (Module, Schedule): React Query (`@tanstack/react-query`) —
-  cached API-Antworten, synchronisiert automatisch bei Änderungen.
-- **UI-State** (Sidebar offen, aktiver Filter): React `useState`/`useReducer` —
-  leichtgewichtig, kein externes State-Management-Framework nötig.
-- **Drag & Drop State**: `@dnd-kit` verwaltet intern — wir reagieren nur auf
-  `onDragEnd`-Events und persistieren das Ergebnis via API.
-
-### API-Kommunikation
-
-Jede API-Interaktion läuft über typisierte Hooks:
-
-```
-src/hooks/use_modules.ts    →  GET/POST /api/modules
-src/hooks/use_schedule.ts   →  GET/POST/PUT/DELETE /api/schedule
-src/lib/api_client.ts       →  Basis-HTTP-Client (fetch-Wrapper mit Fehlerbehandlung)
-```
-
-## Schicht 3: Python Backend (FastAPI)
-
-**Dateien:** `backend/`
-
-### Schichtentrennung im Backend
-
-```
-Routers (API-Layer)      →  Nimmt Requests entgegen, validiert, delegiert
-    ↓
-Services (Geschäftslogik) →  PDF-Extraktion, Stundenplan-Logik, Validierung
-    ↓
-Models (Datenschicht)     →  SQLAlchemy ORM-Modelle, Pydantic-Schemas
-    ↓
-Core (Infrastruktur)      →  Konfiguration, Security, DB-Session-Management
-```
-
-**Wichtig:** Router rufen niemals direkt die Datenbank auf. Immer über einen Service.
-
-### PDF-Extraktion: Pipeline
-
-```
-PDF-Datei
-  │
+```text
+Browser
+  │  http://127.0.0.1:1420
   ▼
-[1] Dateityp-Validierung (Magic Bytes)
-  │
+React 19 + Vite
+  │  relative Anfragen an /api
   ▼
-[2] Text-Extraktion
-  ├── pdfplumber: Tabellen (Vorlesungspläne)
-  └── PyMuPDF:    Fließtext (Modulbeschreibungen)
-  │
+Vite-Proxy
+  │  http://127.0.0.1:8321
   ▼
-[3] Parser-Profil laden (hochschulspezifisch, JSON)
-  │
+FastAPI
+  ├── SQLAlchemy + aiosqlite ──► backend/data/studienorganisator.db
+  └── Upload-Ablage           ──► backend/uploads/
+```
+
+Der Frontend-Client verwendet relative `/api`-Pfade. Im derzeit funktionsfähigen
+Entwicklungsbetrieb leitet ausschließlich der Vite-Proxy diese Anfragen an FastAPI weiter.
+Frontend und Backend sind deshalb gemeinsam erforderlich.
+
+`scripts/start.bat` startet Vite, öffnet den Browser und führt Uvicorn blockierend mit
+`127.0.0.1:8321` aus. Der Browser sendet alle fünf Sekunden einen Heartbeat. Bleibt
+45 Sekunden lang jeder Request aus, beendet sich das Backend; beim Start über das Skript
+wird anschließend auch der Vite-Prozess auf Port 1420 beendet.
+
+## Bausteine
+
+### Frontend
+
+| Pfad | Aufgabe |
+|---|---|
+| `src/app.tsx` | Navigation und sieben aktive Ansichten |
+| `src/components/dashboard/` | Upload, Modulübersicht, Suche, Filter und Reset |
+| `src/components/scheduler/` | Wochenplaner, Platzierung, Bearbeitung und Drag-and-drop |
+| `src/components/modulhandbuch/` | Suche und Moduldetails |
+| `src/components/fpo/` | Prüfungspläne nach Studiengang und Variante |
+| `src/components/studienverlauf/` | Studienverlaufspläne und manuelle Semesterplanung |
+| `src/components/direktlinks/` | Zwei externe THGA-Verweise |
+| `src/components/hilfe/` | Integrierte Bedienungshinweise |
+| `src/lib/api_client.ts` | Fetch-basierter API-Client |
+| `vite.config.ts` | Entwicklungsserver und `/api`-Proxy |
+
+Der Zustand wird mit React-Hooks sowie den vorhandenen Komponenten verwaltet. Für
+Drag-and-drop wird `@dnd-kit` verwendet; eine React-Query-Schicht ist nicht vorhanden.
+
+### Backend
+
+| API-Gruppe | Aufgabe |
+|---|---|
+| `/api/pdf` | Dokumenterkennung und Upload |
+| `/api/modules` | Modulübersicht, Detaildaten und Datenbank-Reset |
+| `/api/schedule` | Einträge des Wochenplaners |
+| `/api/modulhandbuch` | Modulhandbuchdaten und erkannte Studiengänge |
+| `/api/fpo` | Prüfungspläne und erkannte Studiengänge |
+| `/api/studienverlauf` | Pläne, Semester und Module |
+| `/api/health`, `/api/heartbeat` | Status und lokaler Lebenszyklus |
+
+Der Einstieg liegt in `backend/app/main.py`. Die Router unter
+`backend/app/routers/` greifen über asynchrone SQLAlchemy-Sessions auf die Datenbank zu.
+Die Dateien unter `backend/app/services/` enthalten die fünf formatspezifischen Parser.
+Die OpenAPI-Oberflächen `/docs` und `/redoc` werden nur bei
+`DEBUG_MODE=true` bereitgestellt.
+
+## Persistenz und Importverhalten
+
+Die SQLite-Datenbank enthält Dokumente, Veranstaltungen, Termine, Modulmetadaten,
+Dozenten-Mappings, Wochenplaneinträge, Modulhandbücher, FPO-Daten und Studienverlaufspläne.
+
+- Veranstaltungslisten werden angehängt und anschließend gemeinsam ausgewertet.
+- HTM-Importe hängen Wochenplaneinträge an; ein erneuter Import kann Duplikate erzeugen.
+- Modulhandbuch und FPO ersetzen vorhandene Einträge desselben erkannten Studiengangs.
+- Ein Studienverlaufsimport ersetzt den Plan mit demselben Namen.
+- Reguläre Uploads bleiben unter `backend/uploads/`; ein Datenbank-Reset löscht sie nicht.
+
+Beim Start werden Tabellen angelegt. Erkennt die aktuelle Initialisierung fehlende Spalten,
+kann sie betroffene Tabellen neu erstellen; das ist Entwicklungsverhalten und kein
+versioniertes Migrationssystem.
+
+## Tauri-Status
+
+`src-tauri/` ist ein vorhandenes Tauri-2-Gerüst. Es stellt derzeit weder einen
+Python-Sidecar noch Prozessverwaltung, Produktions-Proxy oder eine absolute Backend-URL
+bereit. Daher gilt:
+
+- `npm run build` baut das React-Frontend.
+- `npm run tauri build` ergibt in diesem Stand keine vollständig verbundene Anwendung.
+- Der dokumentierte, getestete Laufzeitpfad bleibt Vite plus FastAPI.
+
+Die Trennung von Weboberfläche und Python-Parsern ist weiterhin mit einer späteren
+Sidecar-Integration vereinbar; sie ist jedoch kein bereits implementierter Bestandteil.
+
+<div align="right">
+
+[`README`](../README.md#deutsch) · [`Nach oben`](#top) · [`English`](#english)
+
+</div>
+
+---
+
+<a id="english"></a>
+
+<div align="center">
+
+`REACT / VITE` · `FASTAPI` · `SQLITE`
+
+# Architecture and runtime
+
+Current state of the connected components, data paths and build boundaries.
+
+[`Runtime`](#runtime-path) ·
+[`Components`](#components) ·
+[`Persistence`](#persistence-and-import-behaviour) ·
+[`Tauri`](#tauri-status-1)
+
+</div>
+
+---
+
+## Runtime path
+
+```text
+Browser
+  │  http://127.0.0.1:1420
   ▼
-[4] Regex + Heuristiken anwenden
-  │  Felder: Modulname, Nummer, ECTS, SWS, Dozent, Raum, Zeit, Semester
-  │
+React 19 + Vite
+  │  relative requests to /api
   ▼
-[5] Konfidenz-Scoring
-  │  Jedes Feld bekommt einen Score (0.0 - 1.0)
-  │  Niedrige Konfidenz → Frontend markiert Feld zur manuellen Prüfung
-  │
+Vite proxy
+  │  http://127.0.0.1:8321
   ▼
-[6] Ergebnis in DB persistieren
+FastAPI
+  ├── SQLAlchemy + aiosqlite ──► backend/data/studienorganisator.db
+  └── Upload storage          ──► backend/uploads/
 ```
 
-### Parser-Profile (Erweiterbarkeit)
+The frontend client uses relative `/api` paths. In the currently functional development
+setup, only Vite proxies these requests to FastAPI. Frontend and backend must therefore run
+together.
 
-Unter `backend/parser_profiles/` liegt pro Hochschule eine JSON-Datei.
-Dies ist der zentrale Erweiterungspunkt für institutionelle Weitergabe.
+`scripts/start.bat` starts Vite, opens the browser, and runs Uvicorn on
+`127.0.0.1:8321`. The browser sends a heartbeat every five seconds. If no request arrives
+for 45 seconds, the backend exits; when the batch script was used, it then also terminates
+the Vite process listening on port 1420.
 
-```json
-{
-  "hochschule": "THGA Bochum",
-  "kuerzel": "thga",
-  "version": "1.0.0",
-  "dokument_typen": {
-    "vorlesungskatalog": {
-      "tabellen_modus": true,
-      "muster": {
-        "modulname": "^([A-Z][a-zäöüß]+(?:\\s[A-Za-zäöüß]+)*)\\s*$",
-        "modul_nummer": "\\b([A-Z]{2,4}\\d{3,4})\\b",
-        "ects": "(\\d{1,2})\\s*(?:ECTS|CP)",
-        "zeit": "(Mo|Di|Mi|Do|Fr)\\s+(\\d{1,2}:\\d{2})\\s*[-–]\\s*(\\d{1,2}:\\d{2})",
-        "raum": "(?:Raum|R\\.)\\s*([A-Z]?\\d{1,3}[./]?\\d{0,3})"
-      }
-    }
-  }
-}
-```
+## Components
 
-## Datenbank-Schema
+### Frontend
 
-```
-documents ──1:N──▶ modules ──1:N──▶ schedule_entries
-```
+| Path | Responsibility |
+|---|---|
+| `src/app.tsx` | Navigation and seven active views |
+| `src/components/dashboard/` | Upload, module overview, search, filters and reset |
+| `src/components/scheduler/` | Weekly planner, placement, editing and drag-and-drop |
+| `src/components/modulhandbuch/` | Search and module details |
+| `src/components/fpo/` | Examination plans by programme and variant |
+| `src/components/studienverlauf/` | Study plans and manual semester planning |
+| `src/components/direktlinks/` | Two external THGA links |
+| `src/components/hilfe/` | Built-in usage guidance |
+| `src/lib/api_client.ts` | Fetch-based API client |
+| `vite.config.ts` | Development server and `/api` proxy |
 
-- **documents**: Hochgeladene PDF-Quelldateien mit Metadaten
-- **modules**: Extrahierte Module/Veranstaltungen mit allen Feldern + Konfidenz
-- **schedule_entries**: Benutzerdefinierte Wochenplan-Einträge (referenziert ein Modul)
+State is managed through React hooks and the existing components. Drag-and-drop uses
+`@dnd-kit`; there is no React Query layer.
 
-Details zum Schema: siehe `backend/app/models/database.py` (sobald implementiert).
+### Backend
 
-## Kommunikationsfluss: PDF hochladen bis Wochenplan
+| API group | Responsibility |
+|---|---|
+| `/api/pdf` | Document detection and upload |
+| `/api/modules` | Module overview, details and database reset |
+| `/api/schedule` | Weekly planner entries |
+| `/api/modulhandbuch` | Module-handbook data and recognised programmes |
+| `/api/fpo` | Examination plans and recognised programmes |
+| `/api/studienverlauf` | Plans, semesters and modules |
+| `/api/health`, `/api/heartbeat` | Status and local lifecycle |
 
-```
-[User]                [Frontend]           [Backend]            [DB]
-  │                       │                    │                  │
-  │── PDF auswählen ─────▶│                    │                  │
-  │                       │── POST /api/pdf ──▶│                  │
-  │                       │   (multipart)      │── Validierung    │
-  │                       │                    │── Extraktion     │
-  │                       │                    │── INSERT ────────▶│
-  │                       │◀── 200 + Module ───│                  │
-  │◀── Module anzeigen ───│                    │                  │
-  │                       │                    │                  │
-  │── Modul korrigieren ─▶│                    │                  │
-  │                       │── PUT /api/mod/1 ─▶│── UPDATE ───────▶│
-  │                       │                    │                  │
-  │── Modul in Plan ─────▶│                    │                  │
-  │   (Drag & Drop)       │── POST /api/sched ▶│── INSERT ───────▶│
-  │◀── Plan aktualisiert ─│                    │                  │
-```
+The entry point is `backend/app/main.py`. Routers under `backend/app/routers/` access the
+database through asynchronous SQLAlchemy sessions. Files under
+`backend/app/services/` contain the five format-specific parsers. The OpenAPI interfaces
+`/docs` and `/redoc` are available only when `DEBUG_MODE=true`.
 
-## Architecture Decision Records (ADRs)
+## Persistence and import behaviour
 
-Wichtige Architekturentscheidungen werden als ADRs unter `docs/adr/` dokumentiert.
-Format: `NNNN-titel.md` (z.B. `0001-tauri-statt-electron.md`).
+The SQLite database stores documents, classes, dates, module metadata, lecturer mappings,
+weekly planner entries, module handbooks, FPO data and study-progression plans.
 
-Vorlage: siehe `docs/adr/0000-vorlage.md`.
+- Class-list imports are appended and subsequently evaluated together.
+- HTM imports append planner entries; importing the same file again can create duplicates.
+- Module handbooks and FPOs replace existing entries for the same recognised programme.
+- A study-progression import replaces the plan with the same name.
+- Regular uploads remain under `backend/uploads/`; a database reset does not delete them.
+
+Tables are created during startup. If the current initialisation detects missing columns,
+it may recreate affected tables; this is development behaviour rather than a versioned
+migration system.
+
+## Tauri status
+
+`src-tauri/` is an existing Tauri 2 scaffold. It currently provides no Python sidecar,
+process management, production proxy or absolute backend URL. Therefore:
+
+- `npm run build` builds the React frontend.
+- `npm run tauri build` does not produce a fully connected application in this state.
+- Vite plus FastAPI remains the documented and tested runtime path.
+
+The separation between the web interface and Python parsers remains compatible with a
+future sidecar integration, but that integration has not yet been implemented.
+
+<div align="right">
+
+[`README`](../README.md#english) · [`Back to top`](#top) · [`Deutsch`](#deutsch)
+
+</div>
