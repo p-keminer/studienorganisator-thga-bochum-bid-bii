@@ -22,12 +22,16 @@ Modul- und Prüfungsdaten sowie zum Erstellen persönlicher Wochen- und Studienv
 
 `React 19` · `TypeScript` · `FastAPI` · `SQLite` · `pdfplumber`
 
-[`Überblick`](#überblick) ·
-[`Funktionen`](#funktionen) ·
-[`Eingaben`](#unterstützte-eingaben) ·
-[`Schnellstart`](#schnellstart) ·
-[`Dokumentation`](#dokumentation) ·
-[`Projektstatus`](#projektstatus)
+<div align="center">
+
+[![Überblick](https://img.shields.io/badge/%C3%9Cberblick-24292f?style=for-the-badge)](#überblick)
+[![Funktionen](https://img.shields.io/badge/Funktionen-24292f?style=for-the-badge)](#funktionen)
+[![Eingaben](https://img.shields.io/badge/Eingaben-24292f?style=for-the-badge)](#unterstützte-eingaben)
+[![Schnellstart](https://img.shields.io/badge/Schnellstart-24292f?style=for-the-badge)](#schnellstart)
+[![Dokumentation](https://img.shields.io/badge/Dokumentation-24292f?style=for-the-badge)](#dokumentation)
+[![Projektstatus](https://img.shields.io/badge/Projektstatus-24292f?style=for-the-badge)](#projektstatus)
+
+</div>
 
 ## Überblick
 
@@ -155,12 +159,16 @@ data, and creating personal weekly schedules and study plans.
 
 `React 19` · `TypeScript` · `FastAPI` · `SQLite` · `pdfplumber`
 
-[`Overview`](#overview) ·
-[`Features`](#features) ·
-[`Inputs`](#supported-inputs) ·
-[`Quick start`](#quick-start) ·
-[`Documentation`](#documentation) ·
-[`Project status`](#project-status)
+<div align="center">
+
+[![Overview](https://img.shields.io/badge/Overview-24292f?style=for-the-badge)](#overview)
+[![Features](https://img.shields.io/badge/Features-24292f?style=for-the-badge)](#features)
+[![Inputs](https://img.shields.io/badge/Inputs-24292f?style=for-the-badge)](#supported-inputs)
+[![Quick start](https://img.shields.io/badge/Quick_start-24292f?style=for-the-badge)](#quick-start)
+[![Documentation](https://img.shields.io/badge/Documentation-24292f?style=for-the-badge)](#documentation)
+[![Project status](https://img.shields.io/badge/Project_status-24292f?style=for-the-badge)](#project-status)
+
+</div>
 
 ## Overview
 
